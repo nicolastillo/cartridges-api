@@ -73,3 +73,29 @@ def buscar_referencia(q: str = Query(..., description="Texto parcial de la refer
         "total": len(resultados),
         "referencias": resultados.to_dict(orient="records")
     }
+
+
+
+@app.get("/buscar-rango")
+def buscar_rango(
+    columna: str = Query(..., description="Nombre de la columna (ej: PLATO_MM, COMPRESORA_ARRIBA_MM)"),
+    min: float = Query(..., description="Valor mínimo"),
+    max: float = Query(..., description="Valor máximo")
+):
+    if columna not in all_cartridges.columns:
+        return {"error": "Columna no válida"}
+
+    df_filtrado = all_cartridges[
+        (all_cartridges[columna].notna()) &
+        (all_cartridges[columna] >= min) &
+        (all_cartridges[columna] <= max)
+    ]
+
+    resultado = df_filtrado[[all_cartridges.columns[0], all_cartridges.columns[1], columna]].copy()
+    resultado = resultado.replace([float("inf"), float("-inf")], None)
+    resultado = resultado.where(pd.notnull(resultado), None)
+
+    return {
+        "total": len(resultado),
+        "resultados": resultado.to_dict(orient="records")
+    }
