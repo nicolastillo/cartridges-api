@@ -36,7 +36,6 @@ all_cartridges['PLATO_MM'] = all_cartridges.iloc[:, 11].apply(limpiar_medida)
 all_cartridges['COMPRESORA_ARRIBA_MM'] = all_cartridges.iloc[:, 5].apply(limpiar_medida)
 all_cartridges['COMPRESORA_ABAJO_MM'] = all_cartridges.iloc[:, 6].apply(limpiar_medida)
 
-
 @app.get("/buscar-referencia")
 def buscar_referencia(q: str = Query(..., description="Texto parcial de la referencia")):
     columna_ref = all_cartridges.columns[1]
@@ -52,31 +51,25 @@ def buscar_referencia(q: str = Query(..., description="Texto parcial de la refer
         all_cartridges.columns[8],   # Eje arriba
         all_cartridges.columns[9],   # Eje abajo
         all_cartridges.columns[7],   # Alabes compresora
-        all_cartridges.columns[21],  # Alabes eje
+        all_cartridges.columns[21] if len(all_cartridges.columns) > 21 else None,  # Alabes eje
         all_cartridges.columns[13],  # Refrigeración por agua
         all_cartridges.columns[14],  # Geometría variable
         all_cartridges.columns[15],  # Material
     ]
 
+    # Eliminar cualquier columna que sea None
+    columnas_tecnicas = [c for c in columnas_tecnicas if c is not None]
+
     coincidencias = all_cartridges[
         all_cartridges[columna_ref].astype(str).str.contains(q, case=False, na=False)
     ]
 
-    resultados = coincidencias[columnas_tecnicas].dropna(how="all").to_dict(orient="records")
-    return {"total": len(resultados), "referencias": resultados}
-@app.get("/buscar-rango")
-def buscar_rango(
-    columna: str = Query(..., description="Nombre de la columna (ej: PLATO_MM, COMPRESORA_ARRIBA_MM)"),
-    min: float = Query(..., description="Valor mínimo"),
-    max: float = Query(..., description="Valor máximo")
-):
-    if columna not in all_cartridges.columns:
-        return {"error": "Columna no válida"}
+    # Limpiar antes de convertir a dict
+    resultados = coincidencias[columnas_tecnicas].copy()
+    resultados = resultados.replace([float("inf"), float("-inf")], None)
+    resultados = resultados.where(pd.notnull(resultados), None)
 
-    df_filtrado = all_cartridges[
-        (all_cartridges[columna].notna()) &
-        (all_cartridges[columna] >= min) &
-        (all_cartridges[columna] <= max)
-    ]
-    resultado = df_filtrado[[all_cartridges.columns[0], all_cartridges.columns[1], columna]].to_dict(orient="records")
-    return {"total": len(resultado), "resultados": resultado}
+    return {
+        "total": len(resultados),
+        "referencias": resultados.to_dict(orient="records")
+    }
