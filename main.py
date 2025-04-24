@@ -36,6 +36,19 @@ all_cartridges['PLATO_MM'] = all_cartridges.iloc[:, 11].apply(limpiar_medida)
 all_cartridges['COMPRESORA_ARRIBA_MM'] = all_cartridges.iloc[:, 5].apply(limpiar_medida)
 all_cartridges['COMPRESORA_ABAJO_MM'] = all_cartridges.iloc[:, 6].apply(limpiar_medida)
 
+
+@app.get("/buscar-referencia")
+def buscar_referencia(q: str = Query(..., description="Texto parcial de la referencia")):
+    # Usar columna 1 como referencia
+    columna_ref = all_cartridges.columns[1]
+    # Filtrar filas que contengan el texto buscado (sin importar mayúsculas/minúsculas)
+    coincidencias = all_cartridges[
+        all_cartridges[columna_ref].astype(str).str.contains(q, case=False, na=False)
+    ]
+    # Extraer solo los nombres de referencia
+    refs = coincidencias[columna_ref].dropna().unique().tolist()
+    return {"total": len(refs), "coincidencias": refs}
+ 
 @app.get("/buscar-rango")
 def buscar_rango(
     columna: str = Query(..., description="Nombre de la columna (ej: PLATO_MM, COMPRESORA_ARRIBA_MM)"),
