@@ -39,16 +39,31 @@ all_cartridges['COMPRESORA_ABAJO_MM'] = all_cartridges.iloc[:, 6].apply(limpiar_
 
 @app.get("/buscar-referencia")
 def buscar_referencia(q: str = Query(..., description="Texto parcial de la referencia")):
-    # Usar columna 1 como referencia
     columna_ref = all_cartridges.columns[1]
-    # Filtrar filas que contengan el texto buscado (sin importar mayúsculas/minúsculas)
+    columnas_tecnicas = [
+        columna_ref,
+        all_cartridges.columns[0],   # Fabricante
+        all_cartridges.columns[2],   # Modelo
+        all_cartridges.columns[3],   # Cilindraje
+        all_cartridges.columns[4],   # Motor
+        all_cartridges.columns[5],   # Compresora arriba
+        all_cartridges.columns[6],   # Compresora abajo
+        all_cartridges.columns[11],  # Plato
+        all_cartridges.columns[8],   # Eje arriba
+        all_cartridges.columns[9],   # Eje abajo
+        all_cartridges.columns[7],   # Alabes compresora
+        all_cartridges.columns[21],  # Alabes eje
+        all_cartridges.columns[13],  # Refrigeración por agua
+        all_cartridges.columns[14],  # Geometría variable
+        all_cartridges.columns[15],  # Material
+    ]
+
     coincidencias = all_cartridges[
         all_cartridges[columna_ref].astype(str).str.contains(q, case=False, na=False)
     ]
-    # Extraer solo los nombres de referencia
-    refs = coincidencias[columna_ref].dropna().unique().tolist()
-    return {"total": len(refs), "coincidencias": refs}
- 
+
+    resultados = coincidencias[columnas_tecnicas].dropna(how="all").to_dict(orient="records")
+    return {"total": len(resultados), "referencias": resultados}
 @app.get("/buscar-rango")
 def buscar_rango(
     columna: str = Query(..., description="Nombre de la columna (ej: PLATO_MM, COMPRESORA_ARRIBA_MM)"),
