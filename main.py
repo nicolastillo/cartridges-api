@@ -85,13 +85,32 @@ def buscar_rango(
     if columna not in all_cartridges.columns:
         return {"error": "Columna no válida"}
 
+    columnas_tecnicas = [
+        all_cartridges.columns[1],   # Referencia
+        all_cartridges.columns[0],   # Fabricante
+        all_cartridges.columns[2],   # Modelo
+        all_cartridges.columns[3],   # Cilindraje
+        all_cartridges.columns[4],   # Motor
+        all_cartridges.columns[5],   # Compresora arriba
+        all_cartridges.columns[6],   # Compresora abajo
+        all_cartridges.columns[11],  # Plato
+        all_cartridges.columns[8],   # Eje arriba
+        all_cartridges.columns[9],   # Eje abajo
+        all_cartridges.columns[7],   # Alabes compresora
+        all_cartridges.columns[21] if len(all_cartridges.columns) > 21 else None,  # Alabes eje
+        all_cartridges.columns[13],  # Refrigeración por agua
+        all_cartridges.columns[14],  # Geometría variable
+        all_cartridges.columns[15],  # Material
+    ]
+    columnas_tecnicas = [c for c in columnas_tecnicas if c is not None]
+
     df_filtrado = all_cartridges[
         (all_cartridges[columna].notna()) &
         (all_cartridges[columna] >= min) &
         (all_cartridges[columna] <= max)
     ]
 
-    resultado = df_filtrado[[all_cartridges.columns[0], all_cartridges.columns[1], columna]].copy()
+    resultado = df_filtrado[columnas_tecnicas].copy()
     resultado = resultado.replace([float("inf"), float("-inf")], None)
     resultado = resultado.where(pd.notnull(resultado), None)
 
