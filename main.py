@@ -1,4 +1,3 @@
-
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
@@ -31,10 +30,10 @@ def limpiar_medida(valor):
     except:
         return None
 
-# Crear columnas numéricas
+# 🛠️ Corregido: compresora ABAJO es col[5], compresora ARRIBA es col[6]
+all_cartridges['COMPRESORA_ABAJO_MM'] = all_cartridges.iloc[:, 5].apply(limpiar_medida)
+all_cartridges['COMPRESORA_ARRIBA_MM'] = all_cartridges.iloc[:, 6].apply(limpiar_medida)
 all_cartridges['PLATO_MM'] = all_cartridges.iloc[:, 11].apply(limpiar_medida)
-all_cartridges['COMPRESORA_ARRIBA_MM'] = all_cartridges.iloc[:, 5].apply(limpiar_medida)
-all_cartridges['COMPRESORA_ABAJO_MM'] = all_cartridges.iloc[:, 6].apply(limpiar_medida)
 
 @app.get("/buscar-referencia")
 def buscar_referencia(q: str = Query(..., description="Texto parcial de la referencia")):
@@ -45,8 +44,8 @@ def buscar_referencia(q: str = Query(..., description="Texto parcial de la refer
         all_cartridges.columns[2],   # Modelo
         all_cartridges.columns[3],   # Cilindraje
         all_cartridges.columns[4],   # Motor
-        all_cartridges.columns[5],   # Compresora arriba
-        all_cartridges.columns[6],   # Compresora abajo
+        all_cartridges.columns[6],   # Compresora arriba (corregido)
+        all_cartridges.columns[5],   # Compresora abajo (corregido)
         all_cartridges.columns[11],  # Plato
         all_cartridges.columns[8],   # Eje arriba
         all_cartridges.columns[9],   # Eje abajo
@@ -57,14 +56,12 @@ def buscar_referencia(q: str = Query(..., description="Texto parcial de la refer
         all_cartridges.columns[15],  # Material
     ]
 
-    # Eliminar cualquier columna que sea None
     columnas_tecnicas = [c for c in columnas_tecnicas if c is not None]
 
     coincidencias = all_cartridges[
         all_cartridges[columna_ref].astype(str).str.contains(q, case=False, na=False)
     ]
 
-    # Limpiar antes de convertir a dict
     resultados = coincidencias[columnas_tecnicas].copy()
     resultados = resultados.replace([float("inf"), float("-inf")], None)
     resultados = resultados.where(pd.notnull(resultados), None)
@@ -73,8 +70,6 @@ def buscar_referencia(q: str = Query(..., description="Texto parcial de la refer
         "total": len(resultados),
         "referencias": resultados.to_dict(orient="records")
     }
-
-
 
 @app.get("/buscar-rango")
 def buscar_rango(
@@ -91,8 +86,8 @@ def buscar_rango(
         all_cartridges.columns[2],   # Modelo
         all_cartridges.columns[3],   # Cilindraje
         all_cartridges.columns[4],   # Motor
-        all_cartridges.columns[5],   # Compresora arriba
-        all_cartridges.columns[6],   # Compresora abajo
+        all_cartridges.columns[6],   # Compresora arriba
+        all_cartridges.columns[5],   # Compresora abajo
         all_cartridges.columns[11],  # Plato
         all_cartridges.columns[8],   # Eje arriba
         all_cartridges.columns[9],   # Eje abajo
@@ -102,6 +97,7 @@ def buscar_rango(
         all_cartridges.columns[14],  # Geometría variable
         all_cartridges.columns[15],  # Material
     ]
+
     columnas_tecnicas = [c for c in columnas_tecnicas if c is not None]
 
     df_filtrado = all_cartridges[
