@@ -29,18 +29,15 @@ def limpiar_medida(valor):
     except:
         return None
 
-# Usar nombres de columnas en vez de índices para evitar errores
-col_map = all_cartridges.columns.str.upper()
+# Función segura para asignar columna limpia
+def safe_assign(column_search, new_column):
+    matches = [col for col in all_cartridges.columns if col.strip().upper() == column_search]
+    if matches:
+        all_cartridges[new_column] = all_cartridges[matches[0]].apply(limpiar_medida)
 
-# Asignar medidas solo si las columnas existen
-if "COMPRESORA ARRIBA" in col_map.values:
-    all_cartridges["COMPRESORA_ARRIBA_MM"] = all_cartridges.loc[:, col_map == "COMPRESORA ARRIBA"].squeeze().apply(limpiar_medida)
-
-if "COMPRESORA ABAJO" in col_map.values:
-    all_cartridges["COMPRESORA_ABAJO_MM"] = all_cartridges.loc[:, col_map == "COMPRESORA ABAJO"].squeeze().apply(limpiar_medida)
-
-if "PLATO" in col_map.values:
-    all_cartridges["PLATO_MM"] = all_cartridges.loc[:, col_map == "PLATO"].squeeze().apply(limpiar_medida)
+safe_assign("COMPRESORA ARRIBA", "COMPRESORA_ARRIBA_MM")
+safe_assign("COMPRESORA ABAJO", "COMPRESORA_ABAJO_MM")
+safe_assign("PLATO", "PLATO_MM")
 
 @app.get("/buscar-referencia")
 def buscar_referencia(q: str = Query(..., description="Texto parcial de la referencia")):
