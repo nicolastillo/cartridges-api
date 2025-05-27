@@ -23,43 +23,44 @@ all_cartridges = pd.concat([cartridges_turbochina, cartridges_zeki, cartridges_o
 
 def limpiar_medida(valor):
     if isinstance(valor, str):
-        valor = valor.replace("mm", "").replace(",", ".").strip()
+        valor = valor.lower().replace("mm", "").replace(",", ".").strip()
     try:
         return float(valor)
     except:
         return None
 
-all_cartridges["PLATO_MM"] = all_cartridges.iloc[:, 11].apply(limpiar_medida)
-all_cartridges["COMPRESORA_ARRIBA_MM"] = all_cartridges.iloc[:, 5].apply(limpiar_medida)
-all_cartridges["COMPRESORA_ABAJO_MM"] = all_cartridges.iloc[:, 6].apply(limpiar_medida)
+# Usar nombres de columnas en vez de índices para evitar errores
+col_map = all_cartridges.columns.str.upper()
+
+# Asignar medidas solo si las columnas existen
+if "COMPRESORA ARRIBA" in col_map.values:
+    all_cartridges["COMPRESORA_ARRIBA_MM"] = all_cartridges.loc[:, col_map == "COMPRESORA ARRIBA"].squeeze().apply(limpiar_medida)
+
+if "COMPRESORA ABAJO" in col_map.values:
+    all_cartridges["COMPRESORA_ABAJO_MM"] = all_cartridges.loc[:, col_map == "COMPRESORA ABAJO"].squeeze().apply(limpiar_medida)
+
+if "PLATO" in col_map.values:
+    all_cartridges["PLATO_MM"] = all_cartridges.loc[:, col_map == "PLATO"].squeeze().apply(limpiar_medida)
 
 @app.get("/buscar-referencia")
 def buscar_referencia(q: str = Query(..., description="Texto parcial de la referencia")):
-    columna_ref = all_cartridges.columns[1]
-    columnas_tecnicas = [
-        columna_ref,
-        all_cartridges.columns[0],
-        all_cartridges.columns[2],
-        all_cartridges.columns[3],
-        all_cartridges.columns[4],
-        all_cartridges.columns[5],
-        all_cartridges.columns[6],
-        all_cartridges.columns[11],
-        all_cartridges.columns[8],
-        all_cartridges.columns[9],
-        all_cartridges.columns[7],
-        all_cartridges.columns[21] if len(all_cartridges.columns) > 21 else None,
-        all_cartridges.columns[13],
-        all_cartridges.columns[14],
-        all_cartridges.columns[15],
-    ]
-    columnas_tecnicas = [c for c in columnas_tecnicas if c is not None]
+    col_ref = "REFERENCIA DTF"
+    if col_ref not in all_cartridges.columns:
+        return {"error": f"Columna '{col_ref}' no encontrada"}
 
-    exactos = all_cartridges[all_cartridges[columna_ref].astype(str).str.lower() == q.lower()]
+    columnas_tecnicas = [
+        "FABRICANTE ORIGEN", "REFERENCIA DTF", "MODELO", "CILINDRAJE", "MOTOR",
+        "COMPRESORA ARRIBA", "COMPRESORA ABAJO", "ALABES COMPRESORA",
+        "EJE ARRIBA", "EJE ABAJO", "ALABES EJE", "PLATO",
+        "REFRIGERACIÓN POR AGUA", "GEOMETRÍA", "MATERIAL"
+    ]
+    columnas_tecnicas = [col for col in columnas_tecnicas if col in all_cartridges.columns]
+
+    exactos = all_cartridges[all_cartridges[col_ref].astype(str).str.lower() == q.lower()]
     if len(exactos) == 1:
         df = exactos[columnas_tecnicas].copy()
     else:
-        parciales = all_cartridges[all_cartridges[columna_ref].astype(str).str.contains(q, case=False, na=False)]
+        parciales = all_cartridges[all_cartridges[col_ref].astype(str).str.contains(q, case=False, na=False)]
         df = parciales[columnas_tecnicas].copy()
 
     df = df.replace([float("inf"), float("-inf")], None)
@@ -77,23 +78,12 @@ def buscar_rango(
         return {"error": "Columna no válida"}
 
     columnas_tecnicas = [
-        all_cartridges.columns[1],
-        all_cartridges.columns[0],
-        all_cartridges.columns[2],
-        all_cartridges.columns[3],
-        all_cartridges.columns[4],
-        all_cartridges.columns[5],
-        all_cartridges.columns[6],
-        all_cartridges.columns[11],
-        all_cartridges.columns[8],
-        all_cartridges.columns[9],
-        all_cartridges.columns[7],
-        all_cartridges.columns[21] if len(all_cartridges.columns) > 21 else None,
-        all_cartridges.columns[13],
-        all_cartridges.columns[14],
-        all_cartridges.columns[15],
+        "FABRICANTE ORIGEN", "REFERENCIA DTF", "MODELO", "CILINDRAJE", "MOTOR",
+        "COMPRESORA ARRIBA", "COMPRESORA ABAJO", "ALABES COMPRESORA",
+        "EJE ARRIBA", "EJE ABAJO", "ALABES EJE", "PLATO",
+        "REFRIGERACIÓN POR AGUA", "GEOMETRÍA", "MATERIAL"
     ]
-    columnas_tecnicas = [c for c in columnas_tecnicas if c is not None]
+    columnas_tecnicas = [col for col in columnas_tecnicas if col in all_cartridges.columns]
 
     df_filtrado = all_cartridges[
         (all_cartridges[columna].notna()) &
