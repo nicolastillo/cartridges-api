@@ -16,9 +16,10 @@ app.add_middleware(
 excel_path = "MEDIDAS_CARTRIDGES.xlsx"
 excel_file = pd.ExcelFile(excel_path)
 
-cartridges_turbochina = excel_file.parse("CARTRIDGES TURBOCHINA")
-cartridges_zeki = excel_file.parse("CARTRIDGES ZEKI")
-cartridges_originales = excel_file.parse("CARTRIDGES ORIGINALES")
+# Usar header=1 para tomar fila 2 del Excel como encabezado real
+cartridges_turbochina = excel_file.parse("CARTRIDGES TURBOCHINA", header=1)
+cartridges_zeki = excel_file.parse("CARTRIDGES ZEKI", header=1)
+cartridges_originales = excel_file.parse("CARTRIDGES ORIGINALES", header=1)
 
 all_cartridges = pd.concat([cartridges_turbochina, cartridges_zeki, cartridges_originales], ignore_index=True)
 
@@ -59,7 +60,7 @@ def buscar_referencia(q: str = Query(..., description="Texto parcial de la refer
         df = parciales.copy()
 
     columnas_tecnicas = [
-        "FABRICANTE ORIGEN", "REFERENCIA DTF", "MODELO", "CILINDRAJE", "MOTOR",
+        "FABRICANTE ORIGINAL", "REFERENCIA DTF", "MODELO", "CILINDRAJE", "MOTOR",
         "COMPRESORA ARRIBA", "COMPRESORA ABAJO", "ALABES COMPRESORA",
         "EJE ARRIBA", "EJE ABAJO", "ALABES EJE", "PLATO",
         "REFRIGERACIÓN POR AGUA", "GEOMETRÍA", "MATERIAL"
@@ -82,7 +83,7 @@ def buscar_rango(
         return {"error": "Columna no válida"}
 
     columnas_tecnicas = [
-        "FABRICANTE ORIGEN", "REFERENCIA DTF", "MODELO", "CILINDRAJE", "MOTOR",
+        "FABRICANTE ORIGINAL", "REFERENCIA DTF", "MODELO", "CILINDRAJE", "MOTOR",
         "COMPRESORA ARRIBA", "COMPRESORA ABAJO", "ALABES COMPRESORA",
         "EJE ARRIBA", "EJE ABAJO", "ALABES EJE", "PLATO",
         "REFRIGERACIÓN POR AGUA", "GEOMETRÍA", "MATERIAL"
