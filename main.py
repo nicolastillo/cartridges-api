@@ -2,6 +2,7 @@
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
+import re
 
 app = FastAPI()
 
@@ -29,7 +30,15 @@ def limpiar_medida(valor):
     except:
         return None
 
-# Función segura para asignar columna limpia
+def normalizar(texto):
+    if not isinstance(texto, str):
+        return ""
+    return re.sub(r"[^a-zA-Z0-9]", "", texto).lower()
+
+# Crear columna auxiliar para búsqueda normalizada
+all_cartridges["__REF_NORMALIZADA__"] = all_cartridges["REFERENCIA DTF"].astype(str).apply(normalizar)
+
+# Asignar medidas limpias
 def safe_assign(column_search, new_column):
     matches = [col for col in all_cartridges.columns if col.strip().upper() == column_search]
     if matches:
@@ -41,9 +50,13 @@ safe_assign("PLATO", "PLATO_MM")
 
 @app.get("/buscar-referencia")
 def buscar_referencia(q: str = Query(..., description="Texto parcial de la referencia")):
-    col_ref = "REFERENCIA DTF"
-    if col_ref not in all_cartridges.columns:
-        return {"error": f"Columna '{col_ref}' no encontrada"}
+    q_norm = normalizar(q)
+    exactos = all_cartridges[all_cartridges["__REF_NORMALIZADA__"] == q_norm]
+    if len(exactos) == 1:
+        df = exactos.copy()
+    else:
+        parciales = all_cartridges[all_cartridges["__REF_NORMALIZADA__"].str.contains(q_norm)]
+        df = parciales.copy()
 
     columnas_tecnicas = [
         "FABRICANTE ORIGEN", "REFERENCIA DTF", "MODELO", "CILINDRAJE", "MOTOR",
@@ -51,15 +64,9 @@ def buscar_referencia(q: str = Query(..., description="Texto parcial de la refer
         "EJE ARRIBA", "EJE ABAJO", "ALABES EJE", "PLATO",
         "REFRIGERACIÓN POR AGUA", "GEOMETRÍA", "MATERIAL"
     ]
-    columnas_tecnicas = [col for col in columnas_tecnicas if col in all_cartridges.columns]
+    columnas_tecnicas = [col for col in columnas_tecnicas if col in df.columns]
 
-    exactos = all_cartridges[all_cartridges[col_ref].astype(str).str.lower() == q.lower()]
-    if len(exactos) == 1:
-        df = exactos[columnas_tecnicas].copy()
-    else:
-        parciales = all_cartridges[all_cartridges[col_ref].astype(str).str.contains(q, case=False, na=False)]
-        df = parciales[columnas_tecnicas].copy()
-
+    df = df[columnas_tecnicas].copy()
     df = df.replace([float("inf"), float("-inf")], None)
     df = df.where(pd.notnull(df), None)
 
